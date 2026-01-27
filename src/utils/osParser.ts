@@ -7,8 +7,8 @@ const parser = new XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: "",
     isArray: (name) => {
-        // Treat these as arrays even if single
-        return ["Entity", "EntityAttribute", "ServerAction", "ClientAction", "ServiceAction", "InputParameter", "OutputParameter", "Variable", "Link"].includes(name);
+        // Ensure these are always arrays to simplify processing
+        return ["Entity", "EntityAttribute", "ServerAction", "ClientAction", "ServiceAction", "InputParameter", "OutputParameter", "Variable", "Link", "Assignment", "Case"].includes(name);
     }
 });
 
@@ -35,24 +35,16 @@ export const parseClipboardData = (xmlString: string, moduleId: string): { entit
     try {
         const jsonObj = parser.parse(xmlString);
 
-        // Helper to traverse and find specific tags
+        // Helper to recursively find objects by tag name
         const findObjects = (obj: any, tagNames: string[]): any[] => {
             let found: any[] = [];
             if (!obj) return found;
-
             if (Array.isArray(obj)) {
                 obj.forEach(item => found = found.concat(findObjects(item, tagNames)));
             } else if (typeof obj === 'object') {
-                // Check if this object IS one of the tags
-                tagNames.forEach(tag => {
-                    if (obj[tag]) found = found.concat(obj[tag]);
-                });
-
-                // Dig deeper
+                tagNames.forEach(tag => { if (obj[tag]) found = found.concat(obj[tag]); });
                 Object.keys(obj).forEach(key => {
-                    if (!tagNames.includes(key)) {
-                        found = found.concat(findObjects(obj[key], tagNames));
-                    }
+                    if (!tagNames.includes(key)) found = found.concat(findObjects(obj[key], tagNames));
                 });
             }
             return found;
@@ -92,45 +84,91 @@ export const parseClipboardData = (xmlString: string, moduleId: string): { entit
             const actionId = uuidv4();
             const nodes: FlowNode[] = [];
             const edges: FlowEdge[] = [];
-
-            // A. Parse Variables (Inputs/Outputs)
             const inputs: Variable[] = [];
             const outputs: Variable[] = [];
 
-            if (raw.Parameters) {
-                const params = Array.isArray(raw.Parameters) ? raw.Parameters : [raw.Parameters]; // Safety check
-                // XMLParser usually puts InputParameter inside Parameters object, let's look closer
-                // Often structure is: Parameters -> InputParameter: [...]
-            }
-            // (Simplified: iterate known keys)
+            // Parse Parameters
             if (raw.InputParameter) raw.InputParameter.forEach((p: any) => inputs.push(mapVar(p)));
             if (raw.OutputParameter) raw.OutputParameter.forEach((p: any) => outputs.push(mapVar(p)));
 
-            // B. Parse Flow Nodes & Edges
-            // OutSystems XML puts flow objects as children of the Action (e.g. <Start>, <Assign>)
-            // It also has a <Link> tag for connections.
+            // --- KEY FIX: DETECT FLOW CONTAINER ---
+            // Service Studio puts nodes inside a <Flow> tag. We must look there.
+            let flowSource = raw;
+            if (raw.Flow) {
+                // If Flow is an array (rare but possible in parser), take first, else take object
+                flowSource = Array.isArray(raw.Flow) ? raw.Flow[0] : raw.Flow;
+            }
 
-            // We scan for known Flow Nodes
-            const flowTags = ['Start', 'End', 'Assign', 'If', 'Switch', 'ExecuteServerAction', 'RunServerAction', 'Aggregate', 'SQL', 'ForEach', 'Comment'];
+            // --- EXTRACT NODES ---
+            const flowTags = ['Start', 'End', 'Assign', 'If', 'Switch', 'ExecuteServerAction', 'RunServerAction', 'RunClientAction', 'Aggregate', 'SQL', 'ForEach', 'Comment', 'RaiseException'];
 
             flowTags.forEach(tag => {
-                if (raw[tag]) {
-                    const items = Array.isArray(raw[tag]) ? raw[tag] : [raw[tag]];
+                if (flowSource[tag]) {
+                    const items = Array.isArray(flowSource[tag]) ? flowSource[tag] : [flowSource[tag]];
                     items.forEach((item: any) => {
+
+                        // Extract Node Details based on Type
+                        const nodeData: any = {};
+
+                        // 1. IF Node
+                        if (tag === 'If' && item.Condition) {
+                            nodeData.condition = item.Condition;
+                        }
+
+                        // 2. ASSIGN Node
+                        if (tag === 'Assign' && item.Assignment) {
+                            const assigns = Array.isArray(item.Assignment) ? item.Assignment : [item.Assignment];
+                            nodeData.assignments = assigns.map((a: any) => ({
+                                variable: a.Variable,
+                                value: a.Value
+                            }));
+                        }
+
+                        // 3. EXECUTE / RUN ACTION
+                        if (['ExecuteServerAction', 'RunServerAction', 'RunClientAction'].includes(tag)) {
+                            // Helper to find action name safely
+                            if (item.Action && item.Action.Name) {
+                                nodeData.action_name = item.Action.Name;
+                            } else if (item.ActionName) {
+                                nodeData.action_name = item.ActionName;
+                            } else if (item.Name) {
+                                nodeData.action_name = item.Name;
+                            }
+                        }
+
+                        // 4. SWITCH
+                        if (tag === 'Switch' && item.Case) {
+                            const cases = Array.isArray(item.Case) ? item.Case : [item.Case];
+                            nodeData.cases = cases.map((c: any) => c.Condition);
+                        }
+
+                        // 5. COMMENT
+                        if (tag === 'Comment') {
+                            nodeData.text = item.Text || "";
+                        }
+
+                        // 6. EXCEPTION
+                        if (tag === 'RaiseException') {
+                            nodeData.exception = item.Exception || item.Name;
+                            nodeData.message = item.ExceptionMessage || "";
+                        }
+
                         nodes.push({
-                            id: item.Name, // OS uses Name as ID in Links
+                            id: item.Name,
                             type: tag,
                             label: item.Name || tag,
-                            posX: 0, // OS XML doesn't always give X/Y clearly, Layout engine will fix
-                            posY: 0
+                            posX: 0,
+                            posY: 0,
+                            data: nodeData
                         });
                     });
                 }
             });
 
-            // C. Parse Links (Edges)
-            if (raw.Link) {
-                raw.Link.forEach((link: any) => {
+            // --- EXTRACT LINKS (EDGES) ---
+            if (flowSource.Link) {
+                const links = Array.isArray(flowSource.Link) ? flowSource.Link : [flowSource.Link];
+                links.forEach((link: any) => {
                     edges.push({
                         id: uuidv4(),
                         source: link.Source,
@@ -144,13 +182,13 @@ export const parseClipboardData = (xmlString: string, moduleId: string): { entit
                 id: actionId,
                 moduleId,
                 name: raw.Name || 'NewAction',
-                type: raw.OriginalName ? 'Client' : 'Server', // Heuristic
+                type: raw.OriginalName || raw.tag === 'ClientAction' ? 'Client' : 'Server',
                 description: raw.Description || '',
                 isFunction: raw.IsFunction === 'true',
                 isPublic: raw.IsPublic === 'true',
                 inputs,
                 outputs,
-                flowSummary: `Imported logic with ${nodes.length} nodes.`,
+                flowSummary: `Logic with ${nodes.length} nodes.`,
                 nodes,
                 edges
             });

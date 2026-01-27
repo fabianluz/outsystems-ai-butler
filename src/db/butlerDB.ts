@@ -31,13 +31,15 @@ export interface Entity {
   attributes: Attribute[];
 }
 
-// --- NEW LOGIC STRUCTURES (Essential for Diagrams) ---
+// --- LOGIC STRUCTURES ---
 export interface FlowNode {
   id: string;
   type: string;
   label: string;
   posX: number;
   posY: number;
+  // NEW: Stores details like "Condition", "Assignments", "ActionName"
+  data?: Record<string, any>;
 }
 
 export interface FlowEdge {
@@ -58,7 +60,6 @@ export interface LogicAction {
   inputs: Variable[];
   outputs: Variable[];
   flowSummary: string;
-  // These fields store the visual diagram
   nodes: FlowNode[];
   edges: FlowEdge[];
 }
@@ -87,21 +88,12 @@ const db = new Dexie('OutSystemsButlerDB') as Dexie & {
   actions: EntityTable<LogicAction, 'id'>;
 };
 
-// --- Versions ---
 db.version(1).stores({
   projects: 'id, name, platform',
   modules: 'id, projectId, name, layer'
 });
-
-db.version(2).stores({
-  entities: 'id, moduleId, name'
-});
-
-db.version(3).stores({
-  actions: 'id, moduleId, name'
-});
-
-// Version 4: Ensure structure exists (JSON fields don't need schema changes in Dexie, but good for version tracking)
+db.version(2).stores({ entities: 'id, moduleId, name' });
+db.version(3).stores({ actions: 'id, moduleId, name' });
 db.version(4).stores({});
 
 export { db };

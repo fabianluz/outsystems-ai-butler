@@ -13,9 +13,10 @@ export default function ModuleDetails() {
     const [showPasteModal, setShowPasteModal] = useState(false);
     const [manualPasteContent, setManualPasteContent] = useState('');
 
-    // New Help Modals State
+    // Help Modals State
     const [showEntityHelp, setShowEntityHelp] = useState(false);
     const [showActionHelp, setShowActionHelp] = useState(false);
+    const [showPromptsModal, setShowPromptsModal] = useState(false);
 
     // 1. Fetch Context
     const module = useLiveQuery(() => db.modules.get(moduleId!), [moduleId]);
@@ -28,6 +29,22 @@ export default function ModuleDetails() {
         const jsonContext = generateModuleContext(module, entities, actions || []);
         navigator.clipboard.writeText(jsonContext);
         alert("Context copied to clipboard!");
+    };
+
+    // Action: Delete Entity
+    const handleDeleteEntity = async (e: React.MouseEvent, id: string) => {
+        e.stopPropagation(); // Prevent card click navigation
+        if (confirm("Are you sure you want to delete this Entity?")) {
+            await db.entities.delete(id);
+        }
+    };
+
+    // Action: Delete Action
+    const handleDeleteAction = async (e: React.MouseEvent, id: string) => {
+        e.stopPropagation(); // Prevent card click navigation
+        if (confirm("Are you sure you want to delete this Action?")) {
+            await db.actions.delete(id);
+        }
     };
 
     // Logic: Process the text
@@ -82,12 +99,22 @@ export default function ModuleDetails() {
                         <p className="text-gray-500">{module.layer} Module</p>
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="flex gap-2">
+                        {/* SUGGESTED PROMPTS BUTTON */}
+                        <button
+                            onClick={() => setShowPromptsModal(true)}
+                            className="bg-purple-50 text-purple-600 border border-purple-100 px-3 py-2 rounded text-xs font-bold hover:bg-purple-100 transition flex items-center gap-1"
+                        >
+                            💡 Suggested Prompts
+                        </button>
+
+                        <div className="w-px bg-gray-300 mx-1 h-8"></div>
+
                         <button
                             onClick={() => setShowEntityHelp(true)}
                             className="bg-blue-50 text-blue-600 border border-blue-100 px-3 py-2 rounded text-xs font-bold hover:bg-blue-100 transition"
                         >
-                            ❓ How to Entities
+                            ❓ Entity Guide
                         </button>
 
                         <button
@@ -133,7 +160,17 @@ export default function ModuleDetails() {
                                 <h3 className="font-bold text-lg text-blue-900 group-hover:text-blue-600">
                                     {ent.name}
                                 </h3>
-                                {ent.isStatic && <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">Static</span>}
+                                <div className="flex items-center gap-2">
+                                    {ent.isStatic && <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">Static</span>}
+                                    {/* DELETE ENTITY BUTTON */}
+                                    <button
+                                        onClick={(e) => handleDeleteEntity(e, ent.id)}
+                                        className="text-gray-300 hover:text-red-500 font-bold p-1 rounded hover:bg-red-50 transition"
+                                        title="Delete Entity"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
                             </div>
                             <p className="text-sm text-gray-500 line-clamp-2 h-10">{ent.description || "No description provided."}</p>
                             <div className="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-400 flex justify-between">
@@ -166,7 +203,7 @@ export default function ModuleDetails() {
                             onClick={() => setShowActionHelp(true)}
                             className="bg-orange-50 text-orange-600 border border-orange-100 px-3 py-2 rounded text-xs font-bold hover:bg-orange-100 transition"
                         >
-                            ❓ How to Actions
+                            ❓ Action Guide
                         </button>
                         <button
                             onClick={() => setShowPasteModal(true)}
@@ -195,7 +232,17 @@ export default function ModuleDetails() {
                                     <span className={`w-2 h-2 rounded-full ${act.type === 'Server' ? 'bg-orange-500' : 'bg-green-500'}`}></span>
                                     <h3 className="font-bold text-gray-800 group-hover:text-orange-600">{act.name}</h3>
                                 </div>
-                                <span className="text-[10px] uppercase font-bold text-gray-400 border px-1 rounded">{act.type}</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] uppercase font-bold text-gray-400 border px-1 rounded">{act.type}</span>
+                                    {/* DELETE ACTION BUTTON */}
+                                    <button
+                                        onClick={(e) => handleDeleteAction(e, act.id)}
+                                        className="text-gray-300 hover:text-red-500 font-bold p-1 rounded hover:bg-red-50 transition"
+                                        title="Delete Action"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
                             </div>
                             <p className="text-xs text-gray-500 mt-2 line-clamp-2">{act.description || "No description"}</p>
 
@@ -224,6 +271,114 @@ export default function ModuleDetails() {
                 </div>
 
             </div>
+
+            {/* --- MODAL: SUGGESTED PROMPTS --- */}
+            {showPromptsModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+                        <h3 className="text-2xl font-bold text-gray-800 mb-2">🤖 Suggested Prompts for LLMs</h3>
+                        <p className="text-gray-500 mb-6">Use these prompts to effectively communicate with ChatGPT or Claude using the data from this app.</p>
+
+                        <div className="space-y-4">
+                            {/* Prompt 1: Upload Context */}
+                            <details className="group border border-gray-200 rounded-lg overflow-hidden" open>
+                                <summary className="p-4 bg-gray-50 font-bold text-gray-700 cursor-pointer hover:bg-gray-100 select-none flex justify-between items-center">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xl">🚀</span>
+                                        <span>Initial Setup: Teaching the AI your App</span>
+                                    </div>
+                                    <span className="text-gray-400 group-open:rotate-180 transition-transform">▼</span>
+                                </summary>
+                                <div className="p-4 bg-white border-t border-gray-100">
+                                    <p className="text-sm text-gray-600 mb-3">
+                                        1. Click the <b>"✨ Copy for AI"</b> button in the main header first.<br />
+                                        2. Copy the prompt below and paste the JSON at the end.
+                                    </p>
+                                    <div className="bg-gray-800 text-green-100 p-4 rounded text-xs font-mono whitespace-pre-wrap leading-relaxed select-all">
+                                        {`I am working on an OutSystems application.
+I will provide you with a JSON definition of my current module acting as a "Digital Twin". 
+Please treat this JSON as the absolute source of truth for my Data Model and Logic.
+
+HOW TO READ THE JSON:
+1. "database": Contains the Entities (Tables). Attributes marked "[PK]" are identifiers.
+2. "logic": Contains Server Actions. 
+   - Look at "flow_logic" to understand the code execution.
+   - "nodes": Represents the steps (Start, If, Assign, ExecuteAction, etc.). 
+     - "data.condition": The logic check for IF nodes.
+     - "data.updates": Variables being changed in Assign nodes.
+     - "data.calls": The name of the sub-action being executed.
+   - "connections": Represents the wiring. "from" -> "to". 
+     - "trigger": Tells you which path is taken (e.g., "True", "False", or "next").
+
+Please analyze this context. I will then ask you to:
+1. Write SQL queries compatible with my specific Entity attributes.
+2. Trace logic paths to find potential bugs (e.g., unhandled "False" paths).
+3. Suggest refactoring based on the visual flow provided.
+
+Here is the JSON Context:
+[PASTE THE JSON CONTENT HERE]`}
+                                    </div>
+                                </div>
+                            </details>
+
+                            {/* Prompt 2: Generate Code */}
+                            <details className="group border border-gray-200 rounded-lg overflow-hidden">
+                                <summary className="p-4 bg-gray-50 font-bold text-gray-700 cursor-pointer hover:bg-gray-100 select-none flex justify-between items-center">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xl">⚡</span>
+                                        <span>Generating Code: Getting Valid Imports</span>
+                                    </div>
+                                    <span className="text-gray-400 group-open:rotate-180 transition-transform">▼</span>
+                                </summary>
+                                <div className="p-4 bg-white border-t border-gray-100">
+                                    <p className="text-sm text-gray-600 mb-3">
+                                        Use this system prompt when you want the AI to write new code that you can <b>Import</b> directly into this app.
+                                    </p>
+                                    <div className="bg-gray-800 text-orange-100 p-4 rounded text-xs font-mono whitespace-pre-wrap leading-relaxed select-all">
+                                        {`I use a tool called "OutSystems AI Butler" to import code.
+When I ask you to generate Entities or Actions, please output VALID XML wrapped in a <ClipboardData> tag.
+
+Follow these strict schemas:
+
+1. ENTITIES (Data):
+<Entity Name="Name">
+  <Attributes>
+    <EntityAttribute Name="Id" Type="LongInteger" IsIdentifier="true" />
+    <EntityAttribute Name="Name" Type="Text" IsMandatory="true" />
+  </Attributes>
+</Entity>
+
+2. SERVER ACTIONS (Logic):
+<ServerAction Name="ActionName">
+  <InputParameter Name="In1" Type="Text" />
+  <OutputParameter Name="Out1" Type="Boolean" />
+  <Variable Name="Var1" Type="Integer" />
+  
+  <Flow>
+    <Start Name="Start" />
+    <If Name="Check"><Condition>Var1 > 10</Condition></If>
+    <Assign Name="SetVal"><Assignment Variable="Out1" Value="True" /></Assign>
+    <End Name="End" />
+    
+    <Link Source="Start" Target="Check" />
+    <Link Source="Check" Target="SetVal" Label="True" />
+    <Link Source="Check" Target="End" Label="False" />
+    <Link Source="SetVal" Target="End" />
+  </Flow>
+</ServerAction>
+
+Allowed Flow Nodes: Start, End, If, Switch, Assign, ExecuteServerAction.`}
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+
+                        <div className="flex justify-end mt-6">
+                            <button onClick={() => setShowPromptsModal(false)} className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 font-bold shadow-sm">Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* --- HELP MODAL: ENTITIES --- */}
             {showEntityHelp && (
