@@ -7,8 +7,7 @@ const parser = new XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: "",
     isArray: (name) => {
-        // Ensure these are always arrays to simplify processing
-        return ["Entity", "EntityAttribute", "ServerAction", "ClientAction", "ServiceAction", "InputParameter", "OutputParameter", "Variable", "Link", "Assignment", "Case"].includes(name);
+        return ["Entity", "EntityAttribute", "ServerAction", "ClientAction", "ServiceAction", "InputParameter", "OutputParameter", "Variable", "Link", "Assignment", "Case", "Parameters", "Parameter"].includes(name);
     }
 });
 
@@ -91,23 +90,20 @@ export const parseClipboardData = (xmlString: string, moduleId: string): { entit
             if (raw.InputParameter) raw.InputParameter.forEach((p: any) => inputs.push(mapVar(p)));
             if (raw.OutputParameter) raw.OutputParameter.forEach((p: any) => outputs.push(mapVar(p)));
 
-            // --- KEY FIX: DETECT FLOW CONTAINER ---
-            // Service Studio puts nodes inside a <Flow> tag. We must look there.
+            // Detect Flow Container
             let flowSource = raw;
             if (raw.Flow) {
-                // If Flow is an array (rare but possible in parser), take first, else take object
                 flowSource = Array.isArray(raw.Flow) ? raw.Flow[0] : raw.Flow;
             }
 
             // --- EXTRACT NODES ---
-            const flowTags = ['Start', 'End', 'Assign', 'If', 'Switch', 'ExecuteServerAction', 'RunServerAction', 'RunClientAction', 'Aggregate', 'SQL', 'ForEach', 'Comment', 'RaiseException'];
+            const flowTags = ['Start', 'End', 'Assign', 'If', 'Switch', 'ExecuteServerAction', 'RunServerAction', 'RunClientAction', 'Aggregate', 'SQL', 'JavaScript', 'ForEach', 'Comment', 'RaiseException', 'Message', 'Download', 'Destination'];
 
             flowTags.forEach(tag => {
                 if (flowSource[tag]) {
                     const items = Array.isArray(flowSource[tag]) ? flowSource[tag] : [flowSource[tag]];
                     items.forEach((item: any) => {
 
-                        // Extract Node Details based on Type
                         const nodeData: any = {};
 
                         // 1. IF Node
@@ -126,7 +122,6 @@ export const parseClipboardData = (xmlString: string, moduleId: string): { entit
 
                         // 3. EXECUTE / RUN ACTION
                         if (['ExecuteServerAction', 'RunServerAction', 'RunClientAction'].includes(tag)) {
-                            // Helper to find action name safely
                             if (item.Action && item.Action.Name) {
                                 nodeData.action_name = item.Action.Name;
                             } else if (item.ActionName) {
@@ -153,8 +148,25 @@ export const parseClipboardData = (xmlString: string, moduleId: string): { entit
                             nodeData.message = item.ExceptionMessage || "";
                         }
 
+                        // 7. SQL (New Support)
+                        if (tag === 'SQL') {
+                            // Service Studio often stores the SQL in a Property named 'SQL' or 'CommandText'
+                            nodeData.query = item.SQL || item.CommandText || item.Name || "SELECT ...";
+                        }
+
+                        // 8. JavaScript (New Support)
+                        if (tag === 'JavaScript') {
+                            nodeData.code = item.Script || item.Code || "// JS Code";
+                        }
+
+                        // 9. Message
+                        if (tag === 'Message') {
+                            nodeData.message = item.Message || "";
+                            nodeData.msgType = item.Type || "Info";
+                        }
+
                         nodes.push({
-                            id: item.Name,
+                            id: item.Name || uuidv4(),
                             type: tag,
                             label: item.Name || tag,
                             posX: 0,
