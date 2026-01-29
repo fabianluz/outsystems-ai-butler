@@ -62,7 +62,7 @@ LLMs are great at writing code, but they often "hallucinate" (invent) variables 
 1.  **Clone the Repository**
 
     ```bash
-    git clone [https://github.com/your-username/outsystems-ai-butler.git](https://github.com/your-username/outsystems-ai-butler.git)
+    git clone https://github.com/fabianluz/outsystems-ai-butler
     cd outsystems-ai-butler
     ```
 
