@@ -40,6 +40,9 @@ The app implements a real-time **Architecture Canvas** validator that enforces t
 * **Gray Orthogonal Lines:** Valid references.
 * **Red Loop-Around Lines:** Invalid references (Violations).
 
+<img width="2426" height="1730" alt="image" src="https://github.com/user-attachments/assets/559a3543-eeb1-4196-b0b8-70bd76705e71" />
+
+
 
 3. **Real-Time Validation:** The "Governance Box" warns you immediately if you break a rule:
 * ❌ **No Upward References:** A Core module cannot consume an End-User module.
