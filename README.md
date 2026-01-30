@@ -6,6 +6,9 @@
 
 OutSystems AI Butler acts as a **"Digital Twin"** and **Architecture Governance Tool** for your OutSystems environment (O11 or ODC). It bridges the gap between visual low-code development, rigid architectural standards, and text-based AI models (like ChatGPT, Claude, or DeepSeek).
 
+<img width="2464" height="874" alt="image" src="https://github.com/user-attachments/assets/baae070a-2ad5-4b85-b443-f39f8bb2e15b" />
+
+
 By maintaining a structured mirror of your **Data**, **Logic**, **UI**, and **Module Dependencies** locally, this tool allows you to:
 
 1. **Visualize & Validate** your architecture against OutSystems best practices.
@@ -20,6 +23,9 @@ LLMs are great at writing code, but they often fail at understanding **context**
 
 * **The Problem:** You ask an AI to "create a logic flow," but it invents tables that don't exist, references modules that create circular dependencies, or suggests placing core logic in the frontend layer.
 * **The Solution:** Butler provides the AI with a **strict JSON definition** of your entire project structure. The AI "sees" your entities, your available actions, and your layer rules, ensuring its output is valid and architecturally sound.
+
+  <img width="2492" height="1690" alt="image" src="https://github.com/user-attachments/assets/d454a356-6de9-49e4-bbe4-237abc708b34" />
+
 
 ---
 
@@ -41,6 +47,7 @@ The app implements a real-time **Architecture Canvas** validator that enforces t
 * ❌ **No Circular Dependencies:** A module cannot indirectly depend on itself.
 
 
+<img width="2386" height="1680" alt="image" src="https://github.com/user-attachments/assets/942b4409-5ce5-40a0-b0bf-76f8b12d70d6" />
 
 ### 📦 "Deep" Dependency Management
 
