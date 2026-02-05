@@ -8,6 +8,9 @@
 
 OutSystems AI Butler acts as a **"Digital Twin"** and **Architecture Governance Tool** for your OutSystems environment. It bridges the gap between visual low-code development, rigid architectural standards, and text-based AI models (like ChatGPT, Claude, or DeepSeek).
 
+<img width="2346" height="822" alt="image" src="https://github.com/user-attachments/assets/4414df70-4ae7-4d13-bf5f-b41a484d8ed6" />
+
+
 Whether you are building a Monolith in **O11** or Microservices in **ODC**, Butler ensures your AI assistant understands your specific context, dependencies, and architectural rules to generate hallucination-free code.
 
 ---
@@ -18,6 +21,9 @@ LLMs are great at writing generic code, but they fail at understanding **your sp
 
 - **The Problem:** You ask an AI to "create a logic flow," but it invents tables that don't exist, references modules that create circular dependencies, or suggests placing core logic in the frontend layer.
 - **The Solution:** Butler maintains a strict **JSON definition** of your project structure locally. It validates your architecture in real-time and feeds the AI a precise "System Manifest," ensuring every suggestion fits perfectly into your existing codebase.
+
+<img width="2372" height="1546" alt="image" src="https://github.com/user-attachments/assets/2bb862f8-7041-405f-867a-b1aa9184c7e1" />
+
 
 ---
 
@@ -43,6 +49,9 @@ Butler creates a live diagram of your architecture and runs a real-time validato
 - ❌ **Data Isolation:** Apps _cannot_ read Entities from other Apps directly.
 - ❌ **Library Constraints:** Libraries must be stateless and cannot consume Apps.
 
+<img width="2410" height="1662" alt="image" src="https://github.com/user-attachments/assets/c6d3bd92-3ba0-4cfa-b501-c3009ae8db61" />
+
+
 ---
 
 ### 📦 The Digital Twin Editors
@@ -64,6 +73,9 @@ Model your application locally before touching Service Studio.
 
 - **Screen Specs:** Define Inputs, Local Variables, and Archetypes (Dashboard, CRUD, Modal).
 - **User Flow Diagram:** A visual map showing how Screens connect and navigate to one another (`ScanMode` -> `ProductDetail`).
+
+<img width="3428" height="1754" alt="image" src="https://github.com/user-attachments/assets/a5f7430e-ee79-4f6e-b906-1ef344a8dfc3" />
+
 
 ---
 
